@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#ff8a65">
+  <title>猫咪营养记录</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #ff8a65;
+      --primary-dark: #e57373;
+      --bg: #fff5f0;
+      --card: #ffffff;
+      --text: #333;
+      --text-light: #999;
+      --border: #ffe0d0;
+      --success: #66bb6a;
+      --warning: #ffa726;
+      --danger: #ef5350;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 16px;
+      padding-bottom: 60px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding: 16px 0 8px;
+    }
+
+    h1 {
+      font-size: 24px;
+      color: var(--primary-dark);
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: var(--text-light);
+      font-size: 13px;
+    }
+
+    .actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .actions button {
+      padding: 6px 14px;
+      border: 1px solid var(--primary);
+      background: white;
+      color: var(--primary);
+      border-radius: 16px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .actions button:hover, .actions button:active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .tabs {
+      display: flex;
+      background: var(--card);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(255, 138, 101, 0.08);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-light);
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .tab.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(255, 138, 101, 0.08);
+    }
+
+    /* Calendar */
+    .calendar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .calendar-header h2 {
+      font-size: 18px;
+      color: var(--text);
+    }
+
+    .calendar-header button {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: var(--bg);
+      color: var(--primary);
+      border-radius: 50%;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: inherit;
+    }
+
+    .calendar-header button:hover { background: var(--primary); color: white; }
+
+    .weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-light);
+      margin-bottom: 8px;
+    }
+
+    .weekdays div:first-child,
+    .weekdays div:last-child { color: var(--primary); }
+
+    .days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .day {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      position: relative;
+      transition: all 0.2s;
+      background: var(--bg);
+    }
+
+    .day.empty { visibility: hidden; }
+    .day:hover { background: var(--border); }
+    .day.today { border: 2px solid var(--primary); }
+    .day.selected { background: var(--primary); color: white; }
+    .day.has-record::after {
+      content: '';
+      position: absolute;
+      bottom: 4px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--primary-dark);
+    }
+    .day.selected.has-record::after { background: white; }
+
+    /* Day Detail */
+    .day-detail h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+
+    .record-list { margin-bottom: 12px; }
+
+    .record {
+      display: flex;
+      align-items: flex-start;
+      padding: 10px;
+      background: var(--bg);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+
+    .record-info { flex: 1; min-width: 0; }
+
+    .record-name {
+      font-weight: 500;
+      color: var(--text);
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .record-meta {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-top: 4px;
+    }
+
+    .record-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      background: var(--primary);
+      color: white;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+
+    .record-tag.餐包 { background: #ffb74d; }
+    .record-tag.罐头 { background: #4db6ac; }
+    .record-tag.营养品 { background: #9575cd; }
+    .record-tag.其他 { background: #90a4ae; }
+
+    .delete-btn {
+      background: transparent;
+      border: none;
+      color: var(--danger);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 8px;
+      line-height: 1;
+    }
+
+    .add-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--bg);
+      color: var(--primary);
+      border: 2px dashed var(--primary);
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .add-btn:hover { background: var(--primary); color: white; }
+
+    /* Form */
+    .form-group { margin-bottom: 12px; }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      background: white;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .form-group textarea { resize: vertical; min-height: 60px; }
+
+    /* Modal */
+    .modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+
+    .modal.active { display: flex; }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      width: 100%;
+      max-width: 400px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-header h3 { font-size: 16px; }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: var(--text-light);
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+      width: 28px;
+      height: 28px;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .modal-footer button {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-secondary { background: var(--bg); color: var(--text); }
+
+    /* Product list */
+    .product-card {
+      padding: 12px;
+      background: var(--bg);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .product-info { flex: 1; min-width: 0; }
+
+    .product-name {
+      font-weight: 500;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .product-meta {
+      font-size: 12px;
+      color: var(--text-light);
+    }
+
+    .status-badge {
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .status-badge.fresh { background: #c8e6c9; color: #2e7d32; }
+    .status-badge.warning { background: #ffe0b2; color: #e65100; }
+    .status-badge.danger { background: #ffcdd2; color: #c62828; }
+
+    .empty {
+      text-align: center;
+      padding: 32px;
+      color: var(--text-light);
+      font-size: 14px;
+    }
+
+    h3 { font-size: 16px; color: var(--text); }
+
+    /* Sync banner */
+    .sync-banner {
+      background: #fff3e0;
+      border-left: 3px solid var(--warning);
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #5d4037;
+      border-radius: 6px;
+      margin-top: 8px;
+      display: none;
+    }
+    .sync-banner.show { display: block; }
+
+    @media (max-width: 600px) {
+      .app { padding: 8px; }
+      .day { font-size: 13px; }
+      h1 { font-size: 20px; }
+      .card { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>🐱 猫咪营养记录</h1>
+      <div class="subtitle">追踪每日餐包、罐头、营养品</div>
+      <div class="actions">
+        <button id="exportBtn">📤 导出数据</button>
+        <button id="importBtn">📥 导入数据</button>
+        <button id="syncBtn">☁️ 同步到云</button>
+      </div>
+      <div class="sync-banner" id="syncBanner"></div>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="daily">每日记录</button>
+      <button class="tab" data-tab="products">营养品管理</button>
+    </nav>
+
+    <main>
+      <section id="dailyTab" class="tab-content active">
+        <div class="card">
+          <div class="calendar-header">
+            <button id="prevMonth" aria-label="上个月">‹</button>
+            <h2 id="monthTitle">2026年8月</h2>
+            <button id="nextMonth" aria-label="下个月">›</button>
+          </div>
+          <div class="weekdays">
+            <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+          </div>
+          <div class="days" id="calendarDays"></div>
+        </div>
+
+        <div class="card day-detail" id="dayDetail">
+          <h3 id="selectedDate">请选择日期</h3>
+          <div id="dayRecords"></div>
+          <button class="add-btn" id="addRecordBtn" style="display:none;">+ 添加记录</button>
+        </div>
+      </section>
+
+      <section id="productsTab" class="tab-content">
+        <div class="card">
+          <h3 style="margin-bottom:12px;">➕ 新增营养品</h3>
+          <div class="form-group">
+            <input type="text" id="productName" placeholder="名称（如：麦德氏营养膏、巅峰罐头）">
+          </div>
+          <div class="form-group">
+            <select id="productType">
+              <option value="营养品">营养品</option>
+              <option value="餐包">餐包</option>
+              <option value="罐头">罐头</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <input type="date" id="productOpenDate">
+          </div>
+          <div class="form-group">
+            <input type="number" id="productShelfLife" placeholder="保质期(天)，如 30、7。可选">
+          </div>
+          <button class="add-btn" id="addProductBtn">添加</button>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom:12px;">📦 已开封</h3>
+          <div id="productList"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal for adding record -->
+  <div class="modal" id="recordModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>添加记录</h3>
+        <button class="close-btn" id="closeRecordModal" aria-label="关闭">×</button>
+      </div>
+      <div class="form-group">
+        <input type="text" id="recordName" placeholder="名称（如：巅峰罐头、营养膏）">
+      </div>
+      <div class="form-group">
+        <select id="recordType">
+          <option value="餐包">餐包</option>
+          <option value="罐头">罐头</option>
+          <option value="营养品">营养品</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <input type="text" id="recordAmount" placeholder="量（如：1/2罐、1条），可选">
+      </div>
+      <div class="form-group">
+        <textarea id="recordNote" placeholder="备注（可选）" rows="2"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="cancelRecord">取消</button>
+        <button class="btn-primary" id="saveRecord">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="importFile" accept=".json" style="display:none">
+
+  <script>
+    const STORAGE_KEY = 'catFeedingData_v1';
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return { records: {}, products: [], updatedAt: null };
+        return JSON.parse(raw);
+      } catch (e) {
+        return { records: {}, products: [], updatedAt: null };
+      }
+    }
+
+    function saveData() {
+      data.updatedAt = Date.now();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    let data = loadData();
+    let currentDate = today();
+    let viewMonth = { year: currentDate.year, month: currentDate.month };
+
+    function today() {
+      const d = new Date();
+      return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate() };
+    }
+
+    function dateKey(year, month, day) {
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+
+    function todayKey() {
+      const t = today();
+      return dateKey(t.year, t.month, t.day);
+    }
+
+    function escapeHtml(s) {
+      if (!s) return '';
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+
+    // Calendar
+    function renderCalendar() {
+      const { year, month } = viewMonth;
+      document.getElementById('monthTitle').textContent = `${year}年${month}月`;
+
+      const firstDay = new Date(year, month - 1, 1).getDay();
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const todayD = today();
+      const sel = currentDate;
+
+      let html = '';
+      for (let i = 0; i < firstDay; i++) {
+        html += '<div class="day empty"></div>';
+      }
+      for (let d = 1; d <= daysInMonth; d++) {
+        const key = dateKey(year, month, d);
+        const hasRec = data.records[key] && data.records[key].length > 0;
+        const isToday = todayD.year === year && todayD.month === month && todayD.day === d;
+        const isSelected = sel.year === year && sel.month === month && sel.day === d;
+        let cls = 'day';
+        if (isToday) cls += ' today';
+        if (isSelected) cls += ' selected';
+        if (hasRec) cls += ' has-record';
+        html += `<div class="${cls}" data-date="${key}">${d}</div>`;
+      }
+
+      const container = document.getElementById('calendarDays');
+      container.innerHTML = html;
+      container.querySelectorAll('.day:not(.empty)').forEach(el => {
+        el.addEventListener('click', () => {
+          const key = el.dataset.date;
+          const [y, m, d] = key.split('-').map(Number);
+          currentDate = { year: y, month: m, day: d };
+          renderCalendar();
+          renderDayDetail();
+        });
+      });
+    }
+
+    function renderDayDetail() {
+      const key = dateKey(currentDate.year, currentDate.month, currentDate.day);
+      const records = data.records[key] || [];
+      const dateText = `${currentDate.year}年${currentDate.month}月${currentDate.day}日`;
+      const weekday = ['日','一','二','三','四','五','六'][new Date(currentDate.year, currentDate.month-1, currentDate.day).getDay()];
+      document.getElementById('selectedDate').textContent = `${dateText} 周${weekday}`;
+
+      const container = document.getElementById('dayRecords');
+      document.getElementById('addRecordBtn').style.display = 'block';
+
+      if (records.length === 0) {
+        container.innerHTML = '<div class="empty">📝 还没有记录<br><span style="font-size:12px;">点击下方按钮添加</span></div>';
+        return;
+      }
+
+      container.innerHTML = records.map((r, idx) => `
+        <div class="record">
+          <div class="record-info">
+            <div class="record-name">
+              <span class="record-tag ${escapeHtml(r.type)}">${escapeHtml(r.type)}</span>
+              <span>${escapeHtml(r.name)}</span>
+              ${r.amount ? `<span style="color:var(--text-light);font-size:12px;">${escapeHtml(r.amount)}</span>` : ''}
+            </div>
+            ${r.note ? `<div class="record-meta">${escapeHtml(r.note)}</div>` : ''}
+          </div>
+          <button class="delete-btn" data-idx="${idx}" aria-label="删除">×</button>
+        </div>
+      `).join('');
+
+      container.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.idx);
+          if (!confirm('删除这条记录？')) return;
+          data.records[key].splice(idx, 1);
+          if (data.records[key].length === 0) delete data.records[key];
+          saveData();
+          renderDayDetail();
+          renderCalendar();
+          showSyncBanner('已保存到本地');
+        });
+      });
+    }
+
+    function renderProducts() {
+      const container = document.getElementById('productList');
+      if (data.products.length === 0) {
+        container.innerHTML = '<div class="empty">📦 还没有营养品<br><span style="font-size:12px;">在上面的表单中添加</span></div>';
+        return;
+      }
+
+      const todayD = today();
+      const todayDate = new Date(todayD.year, todayD.month - 1, todayD.day);
+
+      // 按开封日期倒序
+      const sorted = data.products.map((p, idx) => ({...p, _idx: idx}))
+        .sort((a, b) => b.openDate.localeCompare(a.openDate));
+
+      container.innerHTML = sorted.map(p => {
+        const openDate = new Date(p.openDate);
+        const daysOpen = Math.floor((todayDate - openDate) / 86400000);
+        let statusCls = 'fresh';
+        let statusText = `${daysOpen}天`;
+        if (p.shelfLife) {
+          const remaining = p.shelfLife - daysOpen;
+          if (remaining < 0) { statusCls = 'danger'; statusText = `已过期${Math.abs(remaining)}天`; }
+          else if (remaining <= 3) { statusCls = 'danger'; statusText = `剩${remaining}天`; }
+          else if (remaining <= 7) { statusCls = 'warning'; statusText = `剩${remaining}天`; }
+          else { statusText = `已开${daysOpen}天 / 剩${remaining}天`; }
+        }
+        return `
+          <div class="product-card">
+            <div class="product-info">
+              <div class="product-name">${escapeHtml(p.name)} <span class="record-tag ${escapeHtml(p.type)}">${escapeHtml(p.type)}</span></div>
+              <div class="product-meta">开封：${p.openDate}</div>
+            </div>
+            <span class="status-badge ${statusCls}">${statusText}</span>
+            <button class="delete-btn" data-idx="${p._idx}" aria-label="删除">×</button>
+          </div>
+        `;
+      }).join('');
+
+      container.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.idx);
+          if (!confirm(`删除「${data.products[idx].name}」？`)) return;
+          data.products.splice(idx, 1);
+          saveData();
+          renderProducts();
+        });
+      });
+    }
+
+    // Sync banner
+    let syncBannerTimer = null;
+    function showSyncBanner(msg) {
+      const banner = document.getElementById('syncBanner');
+      banner.textContent = msg;
+      banner.classList.add('show');
+      clearTimeout(syncBannerTimer);
+      syncBannerTimer = setTimeout(() => banner.classList.remove('show'), 2500);
+    }
+
+    // Event handlers
+    document.getElementById('prevMonth').addEventListener('click', () => {
+      viewMonth.month--;
+      if (viewMonth.month < 1) { viewMonth.month = 12; viewMonth.year--; }
+      renderCalendar();
+    });
+
+    document.getElementById('nextMonth').addEventListener('click', () => {
+      viewMonth.month++;
+      if (viewMonth.month > 12) { viewMonth.month = 1; viewMonth.year++; }
+      renderCalendar();
+    });
+
+    document.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(tab + 'Tab').classList.add('active');
+        if (tab === 'products') renderProducts();
+      });
+    });
+
+    // Record modal
+    const recordModal = document.getElementById('recordModal');
+    document.getElementById('addRecordBtn').addEventListener('click', () => {
+      document.getElementById('recordName').value = '';
+      document.getElementById('recordType').value = '餐包';
+      document.getElementById('recordAmount').value = '';
+      document.getElementById('recordNote').value = '';
+      recordModal.classList.add('active');
+      setTimeout(() => document.getElementById('recordName').focus(), 100);
+    });
+
+    document.getElementById('closeRecordModal').addEventListener('click', () => recordModal.classList.remove('active'));
+    document.getElementById('cancelRecord').addEventListener('click', () => recordModal.classList.remove('active'));
+    recordModal.addEventListener('click', e => {
+      if (e.target === recordModal) recordModal.classList.remove('active');
+    });
+
+    document.getElementById('saveRecord').addEventListener('click', () => {
+      const name = document.getElementById('recordName').value.trim();
+      if (!name) { alert('请输入名称'); return; }
+      const type = document.getElementById('recordType').value;
+      const amount = document.getElementById('recordAmount').value.trim();
+      const note = document.getElementById('recordNote').value.trim();
+
+      const key = dateKey(currentDate.year, currentDate.month, currentDate.day);
+      if (!data.records[key]) data.records[key] = [];
+      data.records[key].push({ name, type, amount, note, ts: Date.now() });
+      saveData();
+      recordModal.classList.remove('active');
+      renderDayDetail();
+      renderCalendar();
+      showSyncBanner('已保存到本地');
+    });
+
+    // Add product
+    document.getElementById('addProductBtn').addEventListener('click', () => {
+      const name = document.getElementById('productName').value.trim();
+      const type = document.getElementById('productType').value;
+      const openDate = document.getElementById('productOpenDate').value;
+      const shelfLife = parseInt(document.getElementById('productShelfLife').value) || null;
+
+      if (!name) { alert('请输入名称'); return; }
+      if (!openDate) { alert('请选择开封日期'); return; }
+
+      data.products.push({ name, type, openDate, shelfLife });
+      saveData();
+      document.getElementById('productName').value = '';
+      document.getElementById('productOpenDate').value = todayKey();
+      document.getElementById('productShelfLife').value = '';
+      renderProducts();
+      showSyncBanner('已保存到本地');
+    });
+
+    document.getElementById('productOpenDate').value = todayKey();
+
+    // Export / Import
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cat-feeding-${todayKey()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showSyncBanner('数据已导出');
+    });
+
+    document.getElementById('importBtn').addEventListener('click', () => {
+      document.getElementById('importFile').click();
+    });
+
+    document.getElementById('importFile').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const imported = JSON.parse(ev.target.result);
+          if (!imported.records || !imported.products) throw new Error('文件格式错误');
+          const mergeMode = confirm('确定 = 覆盖当前数据\n取消 = 合并（保留两边数据）');
+          if (mergeMode) {
+            data = imported;
+          } else {
+            // merge
+            Object.keys(imported.records).forEach(k => {
+              if (!data.records[k]) data.records[k] = [];
+              const existingTs = new Set(data.records[k].map(r => r.ts));
+              imported.records[k].forEach(r => {
+                if (!existingTs.has(r.ts)) data.records[k].push(r);
+              });
+            });
+            const existingNames = new Set(data.products.map(p => p.name + p.openDate));
+            imported.products.forEach(p => {
+              if (!existingNames.has(p.name + p.openDate)) data.products.push(p);
+            });
+          }
+          saveData();
+          renderCalendar();
+          renderDayDetail();
+          renderProducts();
+          showSyncBanner('导入成功');
+        } catch (err) {
+          alert('导入失败：' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    // Cloud sync via URL hash (跨设备同步：把数据编码到URL)
+    document.getElementById('syncBtn').addEventListener('click', () => {
+      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+      const url = location.origin + location.pathname + '#data=' + encoded;
+      // 复制到剪贴板
+      navigator.clipboard.writeText(url).then(() => {
+        showSyncBanner('同步链接已复制！粘贴到手机浏览器即可同步');
+      }).catch(() => {
+        prompt('复制下面的链接到手机浏览器：', url);
+      });
+    });
+
+    // 检测URL hash 中的同步数据
+    function checkUrlHash() {
+      const hash = location.hash;
+      if (hash.startsWith('#data=')) {
+        try {
+          const encoded = hash.substring(6);
+          const json = decodeURIComponent(escape(atob(encoded)));
+          const imported = JSON.parse(json);
+          if (!imported.records || !imported.products) return;
+          if (confirm('检测到同步数据，是否导入？\n(确定=覆盖，取消=合并)')) {
+            data = imported;
+          } else {
+            Object.keys(imported.records).forEach(k => {
+              if (!data.records[k]) data.records[k] = [];
+              const existingTs = new Set(data.records[k].map(r => r.ts));
+              imported.records[k].forEach(r => {
+                if (!existingTs.has(r.ts)) data.records[k].push(r);
+              });
+            });
+          }
+          saveData();
+          location.hash = '';
+          renderCalendar();
+          renderDayDetail();
+          showSyncBanner('已从同步链接导入');
+        } catch (e) {
+          console.error('同步数据解析失败', e);
+        }
+      }
+    }
+
+    // Init
+    checkUrlHash();
+    renderCalendar();
+    renderDayDetail();
+  </script>
+</body>
+</html>
