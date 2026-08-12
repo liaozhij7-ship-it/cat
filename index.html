@@ -213,6 +213,7 @@
     .day-type-餐包 { background: #ffb74d; }
     .day-type-罐头 { background: #4db6ac; }
     .day-type-营养品 { background: #9575cd; }
+    .day-type-冻干 { background: #7986cb; }
     .day-type-其他 { background: #90a4ae; }
 
     .day-name {
@@ -285,6 +286,7 @@
     .record-tag.餐包 { background: #ffb74d; }
     .record-tag.罐头 { background: #4db6ac; }
     .record-tag.营养品 { background: #9575cd; }
+    .record-tag.冻干 { background: #7986cb; }
     .record-tag.其他 { background: #90a4ae; }
 
     .delete-btn {
@@ -464,6 +466,72 @@
     .status-badge.warning { background: #ffe0b2; color: #e65100; }
     .status-badge.danger { background: #ffcdd2; color: #c62828; }
 
+    .edit-btn {
+      background: transparent;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px 6px;
+      line-height: 1;
+      opacity: 0.6;
+    }
+    .edit-btn:hover { opacity: 1; }
+
+    .product-card.editing {
+      flex-direction: column;
+      align-items: stretch;
+      background: #fff8f3;
+      border: 1px dashed var(--primary);
+    }
+
+    .edit-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .edit-form input,
+    .edit-form select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      background: white;
+    }
+
+    .edit-form input:focus,
+    .edit-form select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .edit-row {
+      display: flex;
+      gap: 8px;
+    }
+    .edit-row > * { flex: 1; }
+
+    .edit-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .edit-actions button {
+      flex: 1;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn-cancel { background: var(--bg); color: var(--text); }
+    .btn-save { background: var(--primary); color: white; }
+
     .empty {
       text-align: center;
       padding: 32px;
@@ -547,6 +615,7 @@
               <option value="营养品">营养品</option>
               <option value="餐包">餐包</option>
               <option value="罐头">罐头</option>
+              <option value="冻干">冻干</option>
               <option value="其他">其他</option>
             </select>
           </div>
@@ -587,6 +656,7 @@
           <option value="餐包">餐包</option>
           <option value="罐头">罐头</option>
           <option value="营养品">营养品</option>
+          <option value="冻干">冻干</option>
           <option value="其他">其他</option>
         </select>
       </div>
@@ -743,6 +813,8 @@
       });
     }
 
+    let editingProductIdx = -1;
+
     function renderProducts() {
       const container = document.getElementById('productList');
       if (data.products.length === 0) {
@@ -757,7 +829,32 @@
       const sorted = data.products.map((p, idx) => ({...p, _idx: idx}))
         .sort((a, b) => b.openDate.localeCompare(a.openDate));
 
+      const typeOptions = ['营养品', '餐包', '罐头', '冻干', '其他']
+        .map(t => `<option value="${t}">${t}</option>`).join('');
+
       container.innerHTML = sorted.map(p => {
+        const isEditing = (p._idx === editingProductIdx);
+        if (isEditing) {
+          return `
+            <div class="product-card editing" data-idx="${p._idx}">
+              <div class="edit-form">
+                <input type="text" class="edit-name" value="${escapeHtml(p.name)}" placeholder="名称">
+                <div class="edit-row">
+                  <select class="edit-type">${typeOptions.replace(`value="${p.type}"`, `value="${p.type}" selected`)}</select>
+                  <input type="date" class="edit-date" value="${p.openDate}">
+                </div>
+                <div class="edit-row">
+                  <input type="number" class="edit-shelf" placeholder="保质期(天)，可选" value="${p.shelfLife || ''}">
+                </div>
+                <div class="edit-actions">
+                  <button class="btn-cancel">取消</button>
+                  <button class="btn-save">保存</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
         const openDate = new Date(p.openDate);
         const daysOpen = Math.floor((todayDate - openDate) / 86400000);
         let statusCls = 'fresh';
@@ -776,20 +873,58 @@
               <div class="product-meta">开封：${p.openDate}</div>
             </div>
             <span class="status-badge ${statusCls}">${statusText}</span>
+            <button class="edit-btn" data-idx="${p._idx}" aria-label="编辑">✏️</button>
             <button class="delete-btn" data-idx="${p._idx}" aria-label="删除">×</button>
           </div>
         `;
       }).join('');
 
+      // 编辑按钮
+      container.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          editingProductIdx = parseInt(btn.dataset.idx);
+          renderProducts();
+        });
+      });
+
+      // 删除按钮
       container.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const idx = parseInt(btn.dataset.idx);
           if (!confirm(`删除「${data.products[idx].name}」？`)) return;
           data.products.splice(idx, 1);
+          editingProductIdx = -1;
           saveData();
           renderProducts();
         });
       });
+
+      // 编辑模式: 取消
+      const editingCard = container.querySelector('.product-card.editing');
+      if (editingCard) {
+        const idx = parseInt(editingCard.dataset.idx);
+        editingCard.querySelector('.btn-cancel').addEventListener('click', () => {
+          editingProductIdx = -1;
+          renderProducts();
+        });
+        editingCard.querySelector('.btn-save').addEventListener('click', () => {
+          const p = data.products[idx];
+          const newName = editingCard.querySelector('.edit-name').value.trim();
+          const newType = editingCard.querySelector('.edit-type').value;
+          const newDate = editingCard.querySelector('.edit-date').value;
+          const newShelf = parseInt(editingCard.querySelector('.edit-shelf').value) || null;
+          if (!newName) { alert('名称不能为空'); return; }
+          if (!newDate) { alert('开封日期不能为空'); return; }
+          p.name = newName;
+          p.type = newType;
+          p.openDate = newDate;
+          p.shelfLife = newShelf;
+          saveData();
+          editingProductIdx = -1;
+          renderProducts();
+          showSyncBanner('已保存');
+        });
+      }
     }
 
     // Sync banner
