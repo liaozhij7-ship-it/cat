@@ -178,22 +178,63 @@
       position: relative;
       transition: all 0.2s;
       background: var(--bg);
+      padding: 2px;
+      overflow: hidden;
+    }
+
+    .day-num {
+      font-size: 13px;
+      line-height: 1.1;
+    }
+
+    .day-preview {
+      font-size: 9px;
+      line-height: 1.1;
+      margin-top: 1px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      max-width: 100%;
+      overflow: hidden;
+    }
+
+    .day-type {
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      border-radius: 3px;
+      color: white;
+      font-size: 9px;
+      line-height: 11px;
+      text-align: center;
+      flex-shrink: 0;
+      font-weight: 500;
+    }
+    .day-type-餐包 { background: #ffb74d; }
+    .day-type-罐头 { background: #4db6ac; }
+    .day-type-营养品 { background: #9575cd; }
+    .day-type-其他 { background: #90a4ae; }
+
+    .day-name {
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .day-more {
+      color: var(--text-light);
+      font-size: 9px;
+      flex-shrink: 0;
     }
 
     .day.empty { visibility: hidden; }
     .day:hover { background: var(--border); }
     .day.today { border: 2px solid var(--primary); }
     .day.selected { background: var(--primary); color: white; }
-    .day.has-record::after {
-      content: '';
-      position: absolute;
-      bottom: 4px;
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background: var(--primary-dark);
-    }
-    .day.selected.has-record::after { background: white; }
+    .day.selected .day-name,
+    .day.selected .day-more { color: white; }
 
     /* Day Detail */
     .day-detail h3 {
@@ -447,7 +488,10 @@
 
     @media (max-width: 600px) {
       .app { padding: 8px; }
-      .day { font-size: 13px; }
+      .day { font-size: 12px; }
+      .day-num { font-size: 12px; }
+      .day-preview { font-size: 8px; }
+      .day-type { width: 10px; height: 10px; line-height: 10px; font-size: 8px; }
       h1 { font-size: 20px; }
       .card { padding: 12px; }
     }
@@ -620,14 +664,27 @@
       }
       for (let d = 1; d <= daysInMonth; d++) {
         const key = dateKey(year, month, d);
-        const hasRec = data.records[key] && data.records[key].length > 0;
+        const recs = data.records[key] || [];
+        const hasRec = recs.length > 0;
         const isToday = todayD.year === year && todayD.month === month && todayD.day === d;
         const isSelected = sel.year === year && sel.month === month && sel.day === d;
         let cls = 'day';
         if (isToday) cls += ' today';
         if (isSelected) cls += ' selected';
         if (hasRec) cls += ' has-record';
-        html += `<div class="${cls}" data-date="${key}">${d}</div>`;
+
+        let previewHtml = '';
+        if (hasRec) {
+          const first = recs[0];
+          let name = first.name || '';
+          // 截断名字到 2-3 字
+          if (name.length > 3) name = name.substring(0, 3) + '…';
+          const more = recs.length > 1 ? ` <span class="day-more">+${recs.length - 1}</span>` : '';
+          const typeTag = `<span class="day-type day-type-${escapeHtml(first.type)}">${escapeHtml(first.type[0])}</span>`;
+          previewHtml = `<div class="day-preview">${typeTag}<span class="day-name">${escapeHtml(name)}</span>${more}</div>`;
+        }
+
+        html += `<div class="${cls}" data-date="${key}" title="${hasRec ? recs.map(r => r.name).join('、') : ''}"><span class="day-num">${d}</span>${previewHtml}</div>`;
       }
 
       const container = document.getElementById('calendarDays');
