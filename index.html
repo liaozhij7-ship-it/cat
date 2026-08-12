@@ -295,6 +295,31 @@
 
     .form-group textarea { resize: vertical; min-height: 60px; }
 
+    .quick-dates {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .quick-btn {
+      flex: 1;
+      padding: 6px 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--primary);
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .quick-btn:hover, .quick-btn:active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
     /* Modal */
     .modal {
       position: fixed;
@@ -483,6 +508,11 @@
           </div>
           <div class="form-group">
             <input type="date" id="productOpenDate">
+            <div class="quick-dates">
+              <button type="button" class="quick-btn" data-months="0">今天</button>
+              <button type="button" class="quick-btn" data-months="1">1个月前</button>
+              <button type="button" class="quick-btn" data-months="3">3个月前</button>
+            </div>
           </div>
           <div class="form-group">
             <input type="number" id="productShelfLife" placeholder="保质期(天)，如 30、7。可选">
@@ -793,6 +823,17 @@
     });
 
     document.getElementById('productOpenDate').value = todayKey();
+
+    // Quick date buttons
+    document.querySelectorAll('.quick-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const months = parseInt(btn.dataset.months) || 0;
+        const d = new Date();
+        d.setMonth(d.getMonth() - months);
+        document.getElementById('productOpenDate').value =
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      });
+    });
 
     // Export / Import
     document.getElementById('exportBtn').addEventListener('click', () => {
