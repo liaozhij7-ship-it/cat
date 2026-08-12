@@ -211,6 +211,13 @@
       overflow: hidden;
     }
 
+    .day-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .day-preview-more {
       font-size: 8px;
       color: var(--text-light);
@@ -773,10 +780,9 @@
           const more = recs.length - shown.length;
           const rowsHtml = shown.map(r => {
             let name = r.name || '';
-            if (name.length > 3) name = name.substring(0, 3);
+            if (name.length > 6) name = name.substring(0, 6) + '…';
             const typeTag = `<span class="day-type day-type-${escapeHtml(r.type)}">${escapeHtml(r.type[0])}</span>`;
-            const amount = r.amount ? ` <span class="day-amount">${escapeHtml(r.amount)}</span>` : '';
-            return `<div class="day-preview-row">${typeTag}<span class="day-name">${escapeHtml(name)}</span>${amount}</div>`;
+            return `<div class="day-preview-row" title="${escapeHtml(r.name)}${r.amount ? ' ' + escapeHtml(r.amount) : ''}">${typeTag}<span class="day-name">${escapeHtml(name)}</span></div>`;
           }).join('');
           const moreHtml = more > 0 ? `<div class="day-preview-more">+${more} 更多</div>` : '';
           previewHtml = `<div class="day-preview">${rowsHtml}${moreHtml}</div>`;
